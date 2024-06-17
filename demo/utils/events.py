@@ -4,14 +4,34 @@ from streamlit_elements.core.callback import ElementsCallbackData
 
 import pandas as pd
 
+def chgLayout(_, v):
+    if v=="layout2":
+        st.session_state.layout = st.session_state.layout2
+    else:
+        st.session_state.layout = st.session_state.layout1
+
 def chgSearchMode(event):
-    print(event)
+    # print(event)
     st.session_state["searchMode"] = event.target.checked
 
-def chgPage(event, value):
+def chgPage(_, value):
     # print(event)
-    print(value)
+    # print(value)
     st.session_state["curr_page"] = value
+    st.session_state["pageText"] = value
+    sync()
+
+def chgPageNum(value):
+    if value > 0 and value <= st.session_state["total_page"]:
+        st.session_state["curr_page"] = value
+    else:
+        st.session_state["pageText"] = None
+
+def keyPressPage(event):
+    print(event)
+    if event.which == 13:
+        st.session_state["pageKeyPressed"] = True
+        sync("pageText")
 
 def clkChip(keyword:str):
     def callback():
@@ -25,7 +45,79 @@ def delChip(keyword):
         st.session_state["searchHistories"].remove(keyword)
         sync()
     return callback
-    
+
+def clkAnalyze():
+    if st.session_state["ret"] is not None:
+        ## 準備JTITLE圓餅圖資料 ##
+        vCounts = st.session_state["ret"]["JTITLE"].value_counts()
+        pieData = []
+        fill = []
+        fill_id = ["dots", "lines"]
+        for i, (item, count) in enumerate(vCounts.items()):
+            if i > 4:
+                break
+            pieData.append({
+                "id": item,
+                "label": item,
+                "value": count,
+                "color": st.session_state["colors"][count % 5]
+            })
+            fill.append({
+                "match": {"id": item},
+                "id": fill_id[count % 2]
+            })
+        others_data = list(vCounts.items())[5:]  # 後面大於4的元素
+        if len(others_data) > 0:
+            others_item, others_count = zip(*others_data)  # 拆分成兩個列表
+            count = sum(others_count)
+            pieData.append({
+                "id": "其他",
+                "label": f"{', '.join(others_item[:3])}, ...",
+                "value": count,
+                "color": st.session_state["colors"][count % 5]
+            })
+            fill.append({
+                "match": {"id": "其他"},
+                "id": fill_id[count % 2]
+            })
+        if len(pieData) > 0:
+            st.session_state["pieDataJTITLE"] = [pieData, fill]
+
+        ## 準備JTYPE圓餅圖資料 ##
+        vCounts = st.session_state["ret"]["JTYPE"].value_counts()
+        pieData = []
+        fill = []
+        fill_id = ["dots", "lines"]
+        for i, (item, count) in enumerate(vCounts.items()):
+            if i > 4:
+                break
+            pieData.append({
+                "id": item,
+                "label": item,
+                "value": count,
+                "color": st.session_state["colors"][count % 5]
+            })
+            fill.append({
+                "match": {"id": item},
+                "id": fill_id[count % 2]
+            })
+        others_data = list(vCounts.items())[5:]  # 後面大於4的元素
+        if len(others_data) > 0:
+            others_item, others_count = zip(*others_data)  # 拆分成兩個列表
+            count = sum(others_count)
+            pieData.append({
+                "id": "其他",
+                "label": f"{', '.join(others_item[:3])}, ...",
+                "value": count,
+                "color": st.session_state["colors"][count % 5]
+            })
+            fill.append({
+                "match": {"id": "其他"},
+                "id": fill_id[count % 2]
+            })
+        if len(pieData) > 0:
+            st.session_state["pieDataJTYPE"] = [pieData, fill]
+        sync()
 
 def clkSearchButton():
     st.session_state.need2Search = True
@@ -81,7 +173,8 @@ def doOnlineSearch():
         st.warning("搜尋條件不可為空")
         return
     df = concurrentParse(search_attrs)
-    df = df.sort_values(by='labels', ascending=False)
+    df.loc[:,"JDATE"] = pd.to_datetime(df.loc[:,"JDATE"], yearfirst=True, format='%Y-%m-%d').apply(lambda x: x.date())
+    df = df.sort_values(by='JSCORE', ascending=False)
     st.session_state.ret = df
     st.session_state.curr_page = 1 if st.session_state.ret.shape[0] > 0 else None
 
@@ -232,8 +325,7 @@ def concurrentParse(search_attrs):
     end_time = timeit.default_timer()
     print("search time:", end_time - start_time)
 
-    df = pd.DataFrame(data=results, columns=['JID', 'labels', 'JTITLE', 'Judgment_Number', 'Case_Type', 'Judgment_Date', 'Investigated_Object', 'Judgment_URL', 'Summary', 'JFULL'])
-
+    df = pd.DataFrame(data=results, columns=['JID', 'JSCORE', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JOBJECT', 'JURL', 'JSUMMARY', 'JFULL'])
     return df
 
 def parsePage(url):
@@ -265,6 +357,9 @@ def parsePage(url):
             # title = a.text.strip().replace(" ", "")
             title = a.text.strip()
             date = cells[2].text.strip()
+            if '.' in date:
+                year, month, day = date.split('.')
+                date = f'{int(year) + 1911}-{month}-{day}'
             reason = cells[3].text.strip()
             next_row = next(it)
             dscp = next_row.find("span", class_="tdCut").text.strip()
@@ -277,14 +372,14 @@ def parsePage(url):
                     break
             # ret.append(Node(title, date, reason, link, dscp, char))
             ret.append({'JID': JID,
-                        'labels': random.uniform(0, 1),
+                        'JSCORE': random.uniform(0, 1),
                         'JTITLE': reason,
-                        'Judgment_Number': title,
-                        'Case_Type': char,
-                        'Judgment_Date': date,
-                        'Investigated_Object': None,
-                        'Judgment_URL': link,
-                        'Summary':dscp,
+                        'JCHAR': title,
+                        'JTYPE': char,
+                        'JDATE': date,
+                        'JOBJECT': None,
+                        'JURL': link,
+                        'JSUMMARY':dscp,
                         'JFULL': ""
             })
     return ret
@@ -292,14 +387,22 @@ def parsePage(url):
 from fuzzywuzzy import fuzz
 
 def search_company(df, keyword, threshold):
-    similarity_scores = df['Investigated_Object'].apply(lambda x: fuzz.ratio(keyword, x))
+    similarity_scores = df['JOBJECT'].apply(lambda x: fuzz.ratio(keyword, x))
     filtered_df = df[similarity_scores >= threshold]
     return filtered_df
 
 def doLocalSearch():
+    def modify_scores(x):
+        if x == 1:
+            x -= random.uniform(0.02, 0.25)
+        elif x == 0:
+            x += random.uniform(0.02, 0.25)
+        return x
     if st.session_state["dataset"] is not None:
         df = search_company(st.session_state["dataset"], st.session_state["searchInputText"], 45)
-        df = df.sort_values(by='labels', ascending=False)
+        df.loc[:,"JSCORE"] = df.loc[:,"JSCORE"].apply(modify_scores)
+        df.loc[:,"JDATE"] = pd.to_datetime(df.loc[:,"JDATE"], yearfirst=True, format='%Y%m%d').apply(lambda x: x.date())
+        df = df.sort_values(by='JSCORE', ascending=False)
         # st.write(df.shape)
         # st.dataframe(df[['JID', 'labels', 'JTITLE', 'Judgment_Number', 'Case_Type',
         #     'Judgment_Date', 'Investigated_Object', 'Judgment_URL']])

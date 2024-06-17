@@ -11,19 +11,19 @@ def decode_url(sample):
 dataset = dataset['train'].map(decode_url)
 dataset = dataset.rename_columns({
     'JID': 'JID',
-    'label': 'labels',
+    'label': 'JSCORE',
     'JTITLE': 'JTITLE',
-    '裁判字號': 'Judgment_Number',
-    '案件類型': 'Case_Type',
-    '裁判日期': 'Judgment_Date',
-    '調查對象': 'Investigated_Object',
-    '裁判書網址': 'Judgment_URL',
-    '摘要': 'Summary',
+    '裁判字號': 'JCHAR',
+    '案件類型': 'JTYPE',
+    '裁判日期': 'JDATE',
+    '調查對象': 'JOBJECT',
+    '裁判書網址': 'JURL',
+    '摘要': 'JSUMMARY',
     'JFULL': 'JFULL',
 })
 
 df = pd.DataFrame(dataset)
-new_order = ['JID', 'labels', 'JTITLE', 'Judgment_Number', 'Case_Type',
-    'Judgment_Date', 'Investigated_Object', 'Judgment_URL', 'Summary', 'JFULL']
+new_order = ['JID', 'JSCORE', 'JTITLE', 'JCHAR', 'JTYPE',
+    'JDATE', 'JOBJECT', 'JURL', 'JSUMMARY', 'JFULL']
 df = df.reindex(columns=new_order)
 df.to_csv('dataset.csv', index=False, encoding='utf-8')
