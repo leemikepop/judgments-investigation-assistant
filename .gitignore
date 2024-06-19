@@ -1,4 +1,6 @@
 demo-env/
+bert-base-zhtw-3t-cls-best/
+*.code-workspace
 
 
 # Byte-compiled / optimized / DLL files
