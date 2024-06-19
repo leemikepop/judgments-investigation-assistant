@@ -27,9 +27,9 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     ```bash
     pip install -r requirements.txt
     ```
-5. 下載資料集與模型到`demo/`資料夾下
+5. 下載資料集到`demo/`資料夾下
 
-    [維修中...]()
+    [dataset2_no_JFULL.csv](https://drive.google.com/file/d/1RXb2XytTrLxhzNgKLwkOyqJlkxnJvnVa/view?usp=sharing)
     
 6. 運行demo程式
 
