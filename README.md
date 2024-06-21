@@ -1,6 +1,9 @@
 # judgments-investigation-assistant
 Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班學員們的實作結果。
 
+## 示範影片
+![示例影片](https://github.com/leemikepop/judgments-investigation-assistant/blob/main/demo-vedio.webm)
+
 ## 安裝虛擬環境
 
 1. 下載專案的壓縮檔或使用 Git Clone 複製專案到本地。
