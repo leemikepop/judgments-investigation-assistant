@@ -2,7 +2,7 @@
 Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班學員們的實作結果。
 
 ## 示範影片
-![vedio.mp4](./demo-vedio.webm)
+[<img src="https://img.youtube.com/vi/EPotbISrGYs/0.jpg" width="90%">](https://youtu.be/EPotbISrGYs)
 
 ## 安裝虛擬環境
 
