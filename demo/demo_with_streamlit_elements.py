@@ -1,16 +1,16 @@
 # import json
-import math
+# import math
 import pandas as pd
 
 # All available objects and there usage are listed there: https://github.com/okld/streamlit-elements#getting-started
 import streamlit as st
 from streamlit_elements.core.callback import ElementsCallbackData
 from streamlit_elements import elements, dashboard, mui, lazy, sync, html
-from utils.events import chgLayout, chgSearchMode, clkChip, delChip, clkAnalyze, clkSearchButton, doSearch, chgPage, chgPageNum, keyPressPage, showResults
+from utils.events import chgLayout, chgSearchMode, clkChip, delChip, clkAnalyze, clkSearchButton, doSearch, chgPage, chgPageNum, keyPressPage, showResults, showResults2
 from utils.drawer import drawPieChart, drawLineChart
 from streamlit_modal import Modal, contextmanager
 
-import streamlit.components.v1 as components
+# import streamlit.components.v1 as components
 
 # 設定
 st.set_page_config(
@@ -42,9 +42,10 @@ if 'layout2' not in st.session_state:
     ]
 if 'layout' not in st.session_state:
     # https://github.com/react-grid-layout/react-grid-layout#grid-item-props
-    st.session_state["layout"] = st.session_state["layout1"]
+    st.session_state["layout"] = st.session_state["layout2"]
 if 'colors' not in st.session_state:
     st.session_state.colors = ["hsl(309, 70%, 50%)", "hsl(229, 70%, 50%)", "hsl(78, 70%, 50%)", "hsl(278, 70%, 50%)", "hsl(273, 70%, 50%)"]
+import streamlit.components.v1 as components
 class MyModal(Modal):
     def open(self):
         st.session_state[f'{self.key}-opened'] = True
@@ -233,14 +234,14 @@ if st.session_state["pageKeyPressed"] and st.session_state["pageText"]:
     st.session_state.pageText = None
 
 if st.session_state.need2Search:
-    doSearch()
     st.session_state.need2Search = False
+    doSearch()    
 
 # 側邊欄(選擇版面配置)
 with st.sidebar:
     st.header("選擇一個版面配置")
     with elements("sidebar"):
-        with mui.RadioGroup(defaultValue="layout1", onChange=chgLayout):
+        with mui.RadioGroup(defaultValue="layout2", onChange=chgLayout):
             mui.FormControlLabel(control=mui.Radio, value="layout1", label=html.img(src="https://i.imgur.com/4VwKRF2.png"), sx={"margin": '10px', "padding": '20px'})
             mui.FormControlLabel(control=mui.Radio, value="layout2", label=html.img(src="https://i.imgur.com/UBLNnGA.png"), sx={"margin": '10px', "padding": '20px'})
 
@@ -294,7 +295,8 @@ with elements("demo"):
                 
             # 如果有搜尋結果存在`st.session_state["ret"]`內，展示結果 #
             if st.session_state["ret"] is not None:
-                showResults(st.session_state["ret"])
+                # showResults(st.session_state["ret"])
+                showResults2(st.session_state["ret"].copy())
 
             # 頁碼管理處 #
             if st.session_state["total_page"] is not None:

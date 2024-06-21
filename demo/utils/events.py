@@ -1,18 +1,23 @@
 import streamlit as st
-import math
-# import pandas as pd
 from streamlit_elements import sync, mui, nivo
+from streamlit.components.v1 import html
 from .search import doSearch
 
+import math
+import time
+
+
 def chgLayout(_, v):
-    if v=="layout2":
+    if v == "layout2":
         st.session_state.layout = st.session_state.layout2
     else:
         st.session_state.layout = st.session_state.layout1
 
+
 def chgSearchMode(event):
     # print(event)
     st.session_state["searchMode"] = event.target.checked
+
 
 def chgPage(_, value):
     # print(event)
@@ -21,11 +26,13 @@ def chgPage(_, value):
     st.session_state["pageText"] = value
     sync()
 
+
 def chgPageNum(value):
     if value > 0 and value <= st.session_state["total_page"]:
         st.session_state["curr_page"] = value
     else:
         st.session_state["pageText"] = None
+
 
 def keyPressPage(event):
     print(event)
@@ -33,12 +40,14 @@ def keyPressPage(event):
         st.session_state["pageKeyPressed"] = True
         sync("pageText")
 
-def clkChip(keyword:str):
+
+def clkChip(keyword: str):
     def callback():
         st.session_state["searchInputText"] = keyword
         doSearch()
         sync()
     return callback
+
 
 def delChip(keyword):
     def callback():
@@ -46,9 +55,11 @@ def delChip(keyword):
         sync()
     return callback
 
+
 def clkSearchButton():
     st.session_state.need2Search = True
     sync()
+
 
 def showResults(ret):
     ROWs_PER_PAGE = 10
@@ -57,7 +68,7 @@ def showResults(ret):
     start_index = (st.session_state["curr_page"] - 1) * ROWs_PER_PAGE
     end_index = min(st.session_state["curr_page"] * ROWs_PER_PAGE, total_rows)
     with mui.CardContent(sx={"flex": 1, "minHeight": 0, "overflow": "auto"}):
-        
+
         with mui.Table(aria_label="simple table"):
             with mui.TableHead():
                 with mui.TableRow(variant="head"):
@@ -69,11 +80,12 @@ def showResults(ret):
             with mui.TableBody():
                 for index in range(start_index, end_index):
                     data = ret.iloc[index]
-                    with mui.TableRow():#sx={"& td": { "border-top": 0 }, "& a": { "border-top": 0 }}
+                    # sx={"& td": { "border-top": 0 }, "& a": { "border-top": 0 }}
+                    with mui.TableRow():
                         mui.TableCell(f"{index+1}", rowspan=2)
                         # mui.TableCell(f"{data['JSCORE']:.2f}", rowspan=2)
                         with mui.TableCell(rowspan=2):
-                            with mui.Typography(sx={"height":75, "width":75}, align="center"):
+                            with mui.Typography(sx={"height": 75, "width": 75}, align="center"):
                                 nivo.Pie(
                                     colors={"scheme": 'set1'},
                                     data=[
@@ -84,7 +96,8 @@ def showResults(ret):
                                             # "color": "hsl(0, 100%, 60%)"
                                         }
                                     ],
-                                    margin={"top": 10, "right": 10, "bottom": 10, "left": 10},
+                                    margin={"top": 10, "right": 10,
+                                            "bottom": 10, "left": 10},
                                     borderWidth=0,
                                     innerRadius=0.5,
                                     padAngle=5,
@@ -96,22 +109,76 @@ def showResults(ret):
                                     endAngle=int(360*data['JSCORE']),
                                     isInteractive=False
                                 )
-                        mui.TableCell(f"{data['JCHAR']}", align="left", component="a", href=data["JURL"], target="_blank", sx={"color": 'blue', "fontWeight": 'bold' })
+                        mui.TableCell(f"{data['JCHAR']}", align="left", component="a", href=data["JURL"], target="_blank", sx={
+                                      "color": 'blue', "fontWeight": 'bold'})
                         mui.TableCell(f"{data['JDATE']}", align="center")
                         mui.TableCell(f"{data['JTITLE']}", align="center")
                     with mui.TableRow():
-                        mui.TableCell(data['JSUMMARY'][:250]+'...' if len(data['JSUMMARY']) > 250 else data['JSUMMARY'], colspan=3, sx={"color": 'gray'}, onClick=clkSummary(data["JURL"]))
+                        mui.TableCell(data['JSUMMARY'][:250]+'...' if len(data['JSUMMARY']) > 250 else data['JSUMMARY'],
+                                      colspan=3, sx={"color": 'gray'}, onClick=clkSummary(data["JURL"]))
+# def renderJCHAR(url):
+#     def callback(params):
+#         return mui.Typography("123", component="a", href=url, target="_blank")
+#     return callback
+
+def showResults2(ret):
+    ret.reset_index(drop=True, inplace=True)
+    ret['id'] = ret.index + 1
+    ret['JSCORE'] = (ret["JSCORE"]*100).astype(int)
+    ret['JDATE'] = ret['JDATE'].apply(lambda x : x.__str__())
+    # ret['aJCHAR'] = ret.apply(lambda x : f'<a href="{x["JURL"]}" target="_blank">{x["JCHAR"]}</a>', axis=1)
+    rows = ret[['id', 'JSCORE', 'JCHAR', 'JDATE', 'JTITLE', 'JURL', 'JSUMMARY']].to_dict(orient='records')
+    # rows = [{**item, "align": "center"} for item in rows]
+    columns = [
+        {"field": 'id', "headerName": 'No.', "minWidth": 45, "headerAlign":'center', "align": 'center'},
+        {"field": 'JSCORE', "headerName": '信貸分數(負面)', "type": 'number', "minWidth": 130, "headerAlign":'center', "align": 'center'},
+        {"field": 'JCHAR', "headerName": '裁判字號', "minWidth": 400, "headerAlign":'center', "align": 'left'},        
+        {"field": 'JDATE', "headerName": '裁判日期', "type": 'date', "minWidth": 130, "headerAlign":'left', "align": 'left'},
+        {"field": 'JTITLE', "headerName": '裁判案由', "minWidth": 150, "headerAlign":'left', "align": 'left'},
+        {"field": 'JSUMMARY', "headerName": '簡述', "flex": 1, "minWidth": 1000 , "headerAlign":'center', "align": 'left'},
+    ]
+    with mui.CardContent(sx={"flex": 1, "minHeight": 0}):
+        mui.DataGrid(
+            stickyHeader=True,
+            rows=rows,
+            columns=columns,
+            # components={"Toolbar":mui.GridToolbarFilterButton},
+            autosizeOnMount=True, #無效
+            autoPageSize=True,
+            disableSelectionOnClick=True, #disableRowSelectionOnClick=True, #無效 
+            onCellDoubleClick=clkDataCell,
+            # sx={"overflow": "auto"}
+        )
+
+
+def clkDataCell(params, event, details):
+    if params['field'] == "JCHAR":
+        jscode = f"""<script type="text/javascript">
+                        window.open("{params["row"]["JURL"]}", "_blank");
+                        var iframe = document.querySelector('iframe[data-testid="stIFrame"]');
+                        if(iframe) iframe.parentNode.removeChild(iframe);
+                    </script>
+                """
+        placeholder = st.empty()
+        with placeholder:
+            html(jscode)
+            time.sleep(0.5)
+            placeholder.empty()
+    elif params['field'] == "JSUMMARY":
+        st.session_state["modal_url"] = params["row"]["JURL"]
+        st.session_state["modal"].open()
 
 def clkSummary(url):
     def callback():
         st.session_state["modal_url"] = url
         st.session_state["modal"].open()
     return callback
-    
+
 
 def clkAnalyze():
     if st.session_state["ret"] is not None:
-        st.session_state["analyzedData"] = {"keyword":st.session_state["searchInputText"]}
+        st.session_state["analyzedData"] = {
+            "keyword": st.session_state["searchInputText"]}
         ## 準備JTITLE圓餅圖資料 ##
         vCountsJTITLE = st.session_state["ret"]["JTITLE"].value_counts()
         pieData = []
@@ -183,23 +250,25 @@ def clkAnalyze():
             })
         if len(pieData) > 0:
             st.session_state["analyzedData"]["pieDataJTYPE"] = [pieData, fill]
-        
+
         ## 準備折線圖資料 ##
         df = st.session_state["ret"]
         grouped_df = df[df['JTITLE'].isin(JTITLEList)].groupby('JTITLE')
         lineCharData = []
         for group_name, group_df in grouped_df:
             group_df["YEAR"] = group_df["JDATE"].apply(lambda x: x.year)
-            groups_df_cnt = group_df.groupby("YEAR").size().reset_index(name='COUNT')
-            groups_df_cnt = groups_df_cnt.rename(columns={"YEAR": "x", "COUNT": "y"})
+            groups_df_cnt = group_df.groupby(
+                "YEAR").size().reset_index(name='COUNT')
+            groups_df_cnt = groups_df_cnt.rename(
+                columns={"YEAR": "x", "COUNT": "y"})
             lineCharData.append(
                 {
                     "id": group_name,
                     "color": "hsl(246, 70%, 50%)",
-                    "data":groups_df_cnt.to_dict(orient='records')
+                    "data": groups_df_cnt.to_dict(orient='records')
                 }
             )
-        
+
         x_values = set()
 
         for item in lineCharData:
@@ -216,7 +285,8 @@ def clkAnalyze():
             updated_data = []
 
             for x_value in x_range:
-                y_value = next((data_point["y"] for data_point in data_points if data_point['x'] == x_value), 0)
+                y_value = next(
+                    (data_point["y"] for data_point in data_points if data_point['x'] == x_value), 0)
                 updated_data.append({'x': x_value, "y": y_value})
 
             item['data'] = updated_data
