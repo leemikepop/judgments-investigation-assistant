@@ -84,7 +84,7 @@ pageUrls = []
 async def getiFramesUrls(search_attrs):
     # width, height = 1800, 1300
     # browser = await launch(headless=False, args=[f'--window-size={width},{height}','--disable-infobars'])
-    browser = await launch(headless=False,
+    browser = await launch(headless=True,
                             handleSIGINT=False,
                             handleSIGTERM=False,
                             handleSIGHUP=False,

@@ -12,19 +12,19 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     git clone https://github.com/leemikepop/judgments-investigation-assistant.git
     ```
 
-2. 開啟終端機（Terminal）並切換到專案的目錄。
+2. 建立並啟用虛擬環境(建議使用python3.10)：
+
+   ```bash
+   python3 -m venv "demo-env-310"
+   source demo-env-310/bin/activate //Linux
+   demo-env-310\Scripts\activate //Windows
+   ```
+
+3. 開啟終端機（Terminal）並切換到專案的目錄。
 
     ```bash
     cd demo/
     ```
-
-3. 建立並啟用虛擬環境：
-
-   ```bash
-   python3 -m venv "demo-env"
-   source demo-env/bin/activate //Linux
-   demo-env\Scripts\activate //Windows
-   ```
 
 4. 安裝必要的套件
 
