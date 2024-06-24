@@ -6,3 +6,6 @@ requests
 python-Levenshtein
 fuzzywuzzy
 boto3
+torch --find-links https://download.pytorch.org/whl/cpu
+transformers
+datasets

@@ -1,6 +1,8 @@
 # import json
 # import math
 import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
 # All available objects and there usage are listed there: https://github.com/okld/streamlit-elements#getting-started
 import streamlit as st
@@ -8,6 +10,7 @@ from streamlit_elements.core.callback import ElementsCallbackData
 from streamlit_elements import elements, dashboard, mui, lazy, sync, html
 from utils.events import chgLayout, chgSearchMode, clkChip, delChip, clkAnalyze, clkSearchButton, doSearch, chgPage, chgPageNum, keyPressPage, showResults, showResults2
 from utils.drawer import drawPieChart, drawLineChart
+from utils.inference import get_abstract_from_bedrock
 from streamlit_modal import Modal, contextmanager
 
 # import streamlit.components.v1 as components
@@ -27,9 +30,9 @@ if 'layout1' not in st.session_state:
         # Editor item is positioned in coordinates x=0 and y=0, and takes 12/12 columns and has a height of 2.
         dashboard.Item("searchBar", 0, 0, 12, 2),
         # Chart item is positioned in coordinates x=0 and y=2, and takes 6/12 columns and has a height of 8.
-        dashboard.Item("judgmentsCard", 0, 2, 6, 8),
+        dashboard.Item("judgmentsCard", 0, 2, 6, 6),
         # Media item is positioned in coordinates x=6 and y=2, and takes 6/12 columns and has a height of 8.
-        dashboard.Item("abstractArea", 6, 2, 6, 8),
+        dashboard.Item("abstractArea", 6, 2, 6, 6),
     ]
 if 'layout2' not in st.session_state:
     st.session_state.layout2 = [
@@ -160,14 +163,14 @@ class MyModal(Modal):
             yield _container
 if 'modal' not in st.session_state:
     st.session_state["modal"] = MyModal(
-        "裁判書全文", 
+        "AI摘要", 
         key="demo-modal",
         # Optional
         padding=10,    # default value
         max_width=1000  # default value
     )
-if 'modal_url' not in st.session_state:
-    st.session_state["modal_url"] = ""
+if 'modal_data' not in st.session_state:
+    st.session_state["modal_data"] = None
 # 資料
 if 'dataset' not in st.session_state:
     try:
@@ -196,16 +199,15 @@ if "searchHistories" not in st.session_state:
     st.session_state["searchHistories"] = {"閎大營造", "山林水環境工程", "台灣世曦工程顧問", "旺宏電子", "長鴻營造", "欣興電子", "緯創資通"} # set()
 if 'pageText' not in st.session_state:
     st.session_state["pageText"] = None
-import requests
-from bs4 import BeautifulSoup
 
 
 # 刷新頁面時要檢查的狀態
 if st.session_state["modal"].is_open():
+    st.session_state["modal"].title = f"[AI摘要] {st.session_state['modal_data']['JCHAR']}"
     with st.session_state["modal"].container():
         with elements("modal"):
             # html.iframe(src=st.session_state["modal_url"])
-            url = st.session_state["modal_url"]
+            url = st.session_state["modal_data"]["JURL"]
             response = requests.get(url)
             soup = BeautifulSoup(response.text, 'html.parser')
             div_element = soup.find('div', {'id': 'jud'})
@@ -216,7 +218,8 @@ if st.session_state["modal"].is_open():
                 # 取得目標 div 元素的內容
                 with mui.Paper():
                     with mui.Typography(sx={"overflow":"auto"}):
-                        st.markdown(div_element.__str__(), unsafe_allow_html= True)
+                        # st.markdown(div_element.__str__(), unsafe_allow_html= True)
+                        st.markdown(get_abstract_from_bedrock(div_element.text, st.session_state["searchInputText"]), unsafe_allow_html= True)
                         # components.html(div_element.__str__())
             else:
                 st.warning("找不到目標 div 元素")

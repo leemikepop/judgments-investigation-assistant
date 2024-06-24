@@ -165,15 +165,9 @@ def clkDataCell(params, event, details):
             time.sleep(0.5)
             placeholder.empty()
     elif params['field'] == "JSUMMARY":
-        st.session_state["modal_url"] = params["row"]["JURL"]
+        st.session_state["modal_data"] = params["row"]
         st.session_state["modal"].open()
-
-def clkSummary(url):
-    def callback():
-        st.session_state["modal_url"] = url
-        st.session_state["modal"].open()
-    return callback
-
+        time.sleep(0.5)
 
 def clkAnalyze():
     if st.session_state["ret"] is not None:
