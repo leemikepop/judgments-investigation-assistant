@@ -1,6 +1,7 @@
 pyppeteer==2.0.0
 streamlit==1.30.0
 streamlit_elements
+streamlit_modal
 beautifulsoup4
 requests
 python-Levenshtein

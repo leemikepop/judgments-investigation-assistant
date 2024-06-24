@@ -30,11 +30,19 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     ```bash
     pip install -r requirements.txt
     ```
-5. 下載資料集到`demo/`資料夾下
 
+5. 下載資料集到`demo/`資料夾下
     [dataset2_no_JFULL.csv](https://drive.google.com/file/d/1RXb2XytTrLxhzNgKLwkOyqJlkxnJvnVa/view?usp=sharing)
     
-6. 運行demo程式
+    
+6.  在 `.streamlit/`下新增`secrets.toml`
+    ```toml
+    [BEDROCK]
+    ACCESS_KEY = 'YOUR_BEDROCK_ACCESS_KEY'
+    SECRET_KEY = 'YOUR_BEDROCK_ACCESSSECRET_KEY'
+    ```
+    
+7. 運行demo程式
 
     ```bash
     streamlit run demo_with_streamlit_elements.py
@@ -42,7 +50,7 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     在瀏覽器開啟[localhost:8501](localhost:8501)
     第一次運行線上搜尋會比較久，因為`pyppeteer`會先安裝瀏覽器核心
 
-7. 結束程式並退出虛擬環境
+8. 結束程式並退出虛擬環境
 
     `Ctrl + Z` 中止 `streamlit` 程式
     
