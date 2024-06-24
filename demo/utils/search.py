@@ -84,7 +84,7 @@ pageUrls = []
 async def getiFramesUrls(search_attrs):
     # width, height = 1800, 1300
     # browser = await launch(headless=False, args=[f'--window-size={width},{height}','--disable-infobars'])
-    browser = await launch(headless=True,
+    browser = await launch(headless=False,
                             handleSIGINT=False,
                             handleSIGTERM=False,
                             handleSIGHUP=False,
@@ -207,11 +207,14 @@ def concurrentParse(search_attrs):
     start_time = timeit.default_timer()
     asyncio.new_event_loop().run_until_complete(getiFramesUrls(search_attrs))
     results = []
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        ret = executor.map(parsePage, pageUrls)
-        for r in ret:
-            if r is not None:
-                results.extend(r)
+    # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+    #     for r in executor.map(parsePage, pageUrls):
+    #         if r is not None:
+    #             results.extend(r)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(parsePage, url) for url in pageUrls]
+        for future in concurrent.futures.as_completed(futures):
+            results.extend(future.result())
     end_time = timeit.default_timer()
     print("search time:", end_time - start_time)
 
@@ -221,6 +224,7 @@ def concurrentParse(search_attrs):
 def parsePage(url):
     session = requests.Session()
     response = session.get(url)
+    session.close()
     ret = []
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, 'html.parser')
