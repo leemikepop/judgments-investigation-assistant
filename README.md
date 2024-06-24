@@ -12,7 +12,7 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     git clone https://github.com/leemikepop/judgments-investigation-assistant.git
     ```
 
-2. 建立並啟用虛擬環境(建議使用python3.10)：
+2. 建立並啟用虛擬環境(建議使用python3.10.9 ~ 3.12.4)：
 
    ```bash
    python3 -m venv "demo-env-310"
@@ -34,7 +34,7 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     <br>
     如果你使用windows OS，請在虛擬環境中修改這份文件
     
-    `demo-env\Lib\site-packages\pyppeteer\__init__.py`
+    `demo-env-310\Lib\site-packages\pyppeteer\__init__.py`
 
     ```python
     # __chromium_revision__ = '1181205' 修改如下
