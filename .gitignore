@@ -1,4 +1,4 @@
-demo-env-*/
+demo-env*/
 bert-base-zhtw-3t-cls-best/
 *.code-workspace
 secrets.toml
