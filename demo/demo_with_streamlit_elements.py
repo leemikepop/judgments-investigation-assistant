@@ -3,6 +3,7 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import boto3
 
 # All available objects and there usage are listed there: https://github.com/okld/streamlit-elements#getting-started
 import streamlit as st
@@ -60,6 +61,7 @@ class MyModal(Modal):
             div[data-modal-container='true'][key='{self.key}'] {{
                 position: fixed; 
                 width: 100vw !important;
+                height: 100vh !important;
                 left: 0;
                 z-index: 999992;
             }}
@@ -84,6 +86,7 @@ class MyModal(Modal):
             }}
             div[data-modal-container='true'][key='{self.key}'] > div:first-child {{
                 max-width: {self.max_width};
+                max-height: 800;
             }}
 
             div[data-modal-container='true'][key='{self.key}'] > div:first-child > div:first-child {{
@@ -91,8 +94,8 @@ class MyModal(Modal):
                 background-color: #fff; /* Will be overridden if possible */
                 padding: {self.padding}px;
                 margin-top: {2*self.padding}px;
-                margin-left: -{self.padding}px;
-                margin-right: -{self.padding}px;
+                margin-left: -{2*self.padding}px;
+                margin-right: -{2*self.padding}px;
                 margin-bottom: -{2*self.padding}px;
                 z-index: 1001;
                 border-radius: 5px;
@@ -181,6 +184,14 @@ if "ret" not in st.session_state: #搜尋結果
     st.session_state["ret"] = None
 if "analyzedData" not in st.session_state: #分析結果
     st.session_state["analyzedData"] = None
+if "session" not in st.session_state:
+    st.session_state["session"] = boto3.Session(
+        aws_access_key_id=st.secrets["BEDROCK"]["ACCESS_KEY"],
+        aws_secret_access_key=st.secrets["BEDROCK"]["SECRET_KEY"]
+    )
+if "bedrock_client" not in st.session_state:
+    st.session_state["bedrock_client"] = st.session_state["session"].client(
+        'bedrock-runtime', region_name='us-east-1')
 # 狀態
 if "searchMode" not in st.session_state:
     st.session_state["searchMode"] = False
@@ -200,29 +211,39 @@ if "searchHistories" not in st.session_state:
 if 'pageText' not in st.session_state:
     st.session_state["pageText"] = None
 
+@st.cache_data
+def requesJudgs(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    div_element = soup.find('div', {'id': 'jud'})
+    if div_element:
+        td_element = div_element.find('td', {'class': 'tab_linenu'})  # 找到目標td元素
+        if td_element:
+            td_element.extract()  # 刪除該td元素
+        return div_element.text
+    else:
+        return None
 
 # 刷新頁面時要檢查的狀態
 if st.session_state["modal"].is_open():
     st.session_state["modal"].title = f"[AI摘要] {st.session_state['modal_data']['JCHAR']}"
     with st.session_state["modal"].container():
         with elements("modal"):
-            # html.iframe(src=st.session_state["modal_url"])
             url = st.session_state["modal_data"]["JURL"]
-            response = requests.get(url)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            div_element = soup.find('div', {'id': 'jud'})
-            if div_element:
-                td_element = div_element.find('td', {'class': 'tab_linenu'})  # 找到目標td元素
-                if td_element:
-                    td_element.extract()  # 刪除該td元素
-                # 取得目標 div 元素的內容
-                with mui.Paper():
-                    with mui.Typography(sx={"overflow":"auto"}):
-                        # st.markdown(div_element.__str__(), unsafe_allow_html= True)
-                        st.markdown(get_abstract_from_bedrock(div_element.text, st.session_state["searchInputText"]), unsafe_allow_html= True)
-                        # components.html(div_element.__str__())
+            content = requesJudgs(url)
+            if content is not None:
+                result = get_abstract_from_bedrock(content, st.session_state["searchInputText"])
+                with mui.Typography(sx={"overflow":"auto"}):
+                    st.markdown(f"""<b>調查對象：</b>{result["subject"]} ({result["subject_role"]})<br/><br/>"""
+                                f"""<b>原告：</b>{result["plaintiff"]}<br/><br/>"""
+                                f"""<b>被告：</b>{result["defendant"]}<br/><br/>"""
+                                f"""<b>風險評分：</b>{result["risk_score"]} / 100 <br/><br/><br/>"""
+                                f"""<b>簡述：</b>{result["chinese_summary"]}<br/><br/>"""
+                                f"""<b>AI摘要：</b>{result["case_description"]}""", unsafe_allow_html= True)
             else:
-                st.warning("找不到目標 div 元素")
+                mui.Typography("裁判書擷取失敗")
+            
+            
             
 
 if st.session_state["pageKeyPressed"] and st.session_state["pageText"]:

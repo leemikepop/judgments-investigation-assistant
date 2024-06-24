@@ -46,80 +46,154 @@ import streamlit as st
 #     return scores
 
 
-import boto3
+
 import json
 # authentication
-if "session" not in st.session_state:
-    st.session_state["session"] = boto3.Session(
-        aws_access_key_id=st.secrets["BEDROCK"]["ACCESS_KEY"],
-        aws_secret_access_key=st.secrets["BEDROCK"]["SECRET_KEY"]
-    )
-if "bedrock_client" not in st.session_state:
-    st.session_state["bedrock_client"] = st.session_state["session"].client('bedrock-runtime', region_name='us-east-1')
-
 @st.cache_data
-def get_abstract_from_bedrock(sample, company_name):
+def get_abstract_from_bedrock(sample, investigation_subject):
     # 若全文長度大於10000，則取主文+綜上取代JFULL並取前10000字
     # if len(sample['JFULL']) > 10000:
     #     # 將摘要黏到 JFULL 前面並取前10000字
-    #     jud_content = sample['JSUMMARY'] + sample['JFULL'] 
+    #     jud_content = sample['JSUMMARY'] + sample['JFULL']
     #     jud_content = jud_content[:10000]
     # else:
     #     jud_content = sample['JFULL']
     jud_content = sample[:10000]
-
-    prompt = f"""
-    <role>
-    銀行徵信調查人員
-    </role>
-    
-    <template>
-    被告：<system output>\n
-    原告：<system output>；\n
-    摘要：<system output>\n
-    {company_name}的涉案狀況： 
-    </template>
-
+    content = f"""<content>{jud_content}</content>"""
+    rule = f"""
     <rule>
-    1.被告：說明在此案中被告為哪些公司或哪些人
-    2.原告：說明在此案中被告為哪些公司或哪些人
-    3.摘要：簡述案情與判決結果，約100字
-    4.{company_name}的涉案狀況：須說明兩件事，其一說明{company_name}在此篇判決書中是"原告"或"被告"或"不知道"，其二簡述{company_name}的涉案狀況，約70字，若該公司與此篇判決書無關則輸出"與此案無關"
-    5.輸出請嚴格按照<template>中的模板生成對應內容，即文字、空格以及換行需一模一樣。
-    6.輸出時絕對不要用html的標籤
+    1.原告(plaintiff)：說明在此案中被告為哪些公司或哪些人。
+    2.被告(defendant)：說明在此案中被告為哪些公司或哪些人。
+    3.調查對象(subject)：<subject>的內容，是我們的調查對象，通常是公司或個人。
+    4.摘要(summary)：簡述案情與判決結果，約200字。
+    4.調查對象的涉案狀況(case description)：須說明兩件事，其一說明調查對象在此篇判決書中是"原告"或"被告"或"不知道"，其二簡述調查對象的涉案狀況，約100字，若該公司與此篇判決書無關則輸出"與此案無關"
     </rule>
-
-    <content>
-    {jud_content}
-    </content>
-
+    """
+    subject = f"<subject>{investigation_subject}</subject>"
+    prompt = f"""
     <prompt>
-    你是<role>中所述的專業人士，請你根據<content>中的裁判書內容，以及<rule>中的輸出規則，嚴格按照<template>中的模板生成對應內容，謝謝。
+    你是銀行金融借貸的徵信調查人員正要調查<subject>提及的人物或公司，請你根據<content>中的裁判書內容，使用summarize_judgement工具生成JSON格式的回答。
     </prompt>
     """
 
+    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages.html
+    jud_tool = {
+        "name": "summarize_judgement",
+        "description": "Summarize judgement content.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+            "plaintiff": {
+                "type": "string",
+                "description": "Identifies the plaintiff(原告) in the judgment document."
+            },
+            "defendant": {
+                "type": "string",
+                "description": "Identifies the defendant(被告) in the judgment document."
+            },
+            "subject": {
+                "type": "string",
+                "description": "The subject of investigation in this judgment document.",
+            },
+            "subject_role": {
+                "type": "string",
+                "description": "The role of the subject of investigation in this judgment document.",
+                "enum": ["原告", "被告", "關係人", "無關", "不知道"]
+            },
+            "chinese_summary": {
+                "type": "string",
+                "description": "Provides a summary of this judgment document."
+            },
+            "case_description": {
+                "type": "string",
+                "description": "Briefly describes the involvement of the subject of investigation in this judgment document."
+            },
+            "risk_score": {
+                "type": "integer",
+                "description": "Determines the risk of financial lending by the bank to the subject of investigation, ranging from 1 to 100.",
+                "minimum": 1,
+                "maximum": 100
+            },          
+            # "supporting_business_unit": {
+            #     "type": "string",
+            #     "description": "The internal business unit that this email should be routed to.",
+            #     "enum": ["Sales", "Operations", "Customer Service", "Fund Management"]
+            # },
+            # "customer_names": {
+            #     "type": "array",
+            #     "description": "An array of customer names mentioned in the email.",
+            #     "items": { "type": "string" }
+            # },
+            # "sentiment_towards_employees": {
+            #     "type": "array",
+            #     "items": {
+            #         "type": "object",
+            #         "properties": {
+            #             "employee_name": {
+            #                 "type": "string",
+            #                 "description": "The employee's name."
+            #             },
+            #             "sentiment": {
+            #                 "type": "string",
+            #                 "description": "The sender's sentiment towards the employee.",
+            #                 "enum": ["Positive", "Neutral", "Negative"]
+            #             }
+            #         }
+            #     }
+            # }
+            },
+            "required": [
+                "plaintiff",
+                "defendant",
+                "subject",
+                "subject_role",
+                "chinese_summary",
+                "case_description",
+                "risk_score"
+            ]
+        }
+    }
+
     # Claude 3 Haiku
-    messages_API_body = {
+    body = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": int(500 / 0.75),
+        "max_tokens": 4000,
+        "system": rule,
+        # "stop_sequences": [""],
         "messages": [
+            # {
+            #     "role": "assistant",
+            #     "content": [
+            #         {"type": "text", "text": rule}
+            #     ]
+            # },
             {
                 "role": "user",
                 "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
+                    {"type": "text", "text": content},
+                    {"type": "text", "text": subject},
+                    {"type": "text", "text": prompt},                
                 ]
             }
-        ]
+        ],
+        "temperature": 0.5,
+        # "top_p": 0.999,
+        # "top_k ": 500,
+        "tools": [jud_tool],
+        "tool_choice": {
+            "type": "tool",
+            "name": "summarize_judgement"
+        }
     }
     kwargs = {
-        "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+        "body": json.dumps(body),
         "contentType": "application/json",
         "accept": "application/json",
-        "body": json.dumps(messages_API_body)
+        "modelId": 'anthropic.claude-3-sonnet-20240229-v1:0',#"anthropic.claude-3-haiku-20240307-v1:0", #'anthropic.claude-3-5-sonnet-20240620-v1:0'
+        # "trace": 'DISABLED', #'ENABLED'|'DISABLED',
+        # "guardrailIdentifier":None, #'string',
+        # "guardrailVersion":None, #'string'
     }
-    response = st.session_state["bedrock_client"].invoke_model(**kwargs)
-    response_body = json.loads(response.get('body').read())
-    return response_body['content'][0]['text']  # for Claude 3
+    response = st.session_state["bedrock_client"].invoke_model(**kwargs) # dict_keys(['ResponseMetadata', 'contentType', 'body'])
+    response_body = json.loads(response.get('body').read()) # dict_keys(['id', 'type', 'role', 'model', 'content', 'stop_reason', 'stop_sequence', 'usage'])
+    return response_body["content"][0]["input"]  # dict_keys(['plaintiff', 'defendant', 'subject', 'subject_role', 'chinese_summary', 'case_description', 'risk_score'])
