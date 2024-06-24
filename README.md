@@ -32,9 +32,13 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
     pip install --default-timeout=100 -r requirements.txt
     ```
     <br>
-    如果你使用windows OS，請在虛擬環境中修改這份文件`demo-env\Lib\site-packages\pyppeteer\__init__.py`
+    如果你使用windows OS，請在虛擬環境中修改這份文件
+    
+    `demo-env\Lib\site-packages\pyppeteer\__init__.py`
+
     ```python
-    __chromium_revision__ = '1181205' -> __chromium_revision__ = '1263111'
+    # __chromium_revision__ = '1181205' 修改如下
+    __chromium_revision__ = '1263111'
     ```
 
 5. 下載資料集到`demo/`資料夾下
