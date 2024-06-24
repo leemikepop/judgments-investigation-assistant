@@ -22,13 +22,19 @@ Judgments Investigation Assistant 是第五屆T大使-上海商銀企業專班�
 
    ```bash
    python3 -m venv "demo-env"
-   source demo-env/bin/activate
+   source demo-env/bin/activate //Linux
+   demo-env\Scripts\activate //Windows
    ```
 
 4. 安裝必要的套件
 
     ```bash
-    pip install -r requirements.txt
+    pip install --default-timeout=100 -r requirements.txt
+    ```
+    <br>
+    如果你使用windows OS，請在虛擬環境中修改這份文件`demo-env\Lib\site-packages\pyppeteer\__init__.py`
+    ```python
+    __chromium_revision__ = '1181205' -> __chromium_revision__ = '1263111'
     ```
 
 5. 下載資料集到`demo/`資料夾下
