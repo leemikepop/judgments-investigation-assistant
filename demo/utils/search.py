@@ -88,7 +88,7 @@ async def getiFramesUrls(search_attrs):
                             args=['--disable-infobars'])
     page = await browser.newPage()
     # await page.setViewport({'width': 1700, 'height': 1280})
-    await page.goto(URL)
+    await page.goto(URL, {'timeout': 60000})
 
     if search_attrs["case0"]:
         await page.waitForSelector("#vtype_C")

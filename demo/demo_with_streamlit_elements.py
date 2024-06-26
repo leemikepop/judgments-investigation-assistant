@@ -89,7 +89,7 @@ if "searchHistories" not in st.session_state:
 
 
 @st.cache_data
-def requesJudgs(url):
+def requestJudgs(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     div_element = soup.find('div', {'id': 'jud'})
@@ -111,7 +111,7 @@ if st.session_state["modal"].is_open():
             if not st.session_state["modal_data"]["JSCORE"]:
                 url = st.session_state["modal_data"]["JURL"]
                 start_time = timeit.default_timer()
-                content = requesJudgs(url)
+                content = requestJudgs(url)
                 end_time = timeit.default_timer()
                 print("parse JFULL time:", end_time - start_time)
                 start_time = timeit.default_timer()
