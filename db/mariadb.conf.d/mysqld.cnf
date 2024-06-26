@@ -1,0 +1,6 @@
+[client]
+default-character-set=utf8mb4        ## 修改 Client characterset 與 Conn. characterset
+[mysqld]
+bind-address = 0.0.0.0
+character-set-server=utf8mb4         ## 修改 Server characterset 與 Db characterset
+collation-server=utf8mb4_unicode_ci  ## 會修改預設的校驗比對方法

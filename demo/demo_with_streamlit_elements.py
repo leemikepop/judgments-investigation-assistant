@@ -58,7 +58,7 @@ if 'modal_data' not in st.session_state:
 # 資料
 if 'db' not in st.session_state:
     st.session_state['db'] = MariaDBURID(
-        host=st.secrets["DB"]["HOST"], port=3306, user=st.secrets["DB"]["USER"], password=st.secrets["DB"]["PASSWORD"], database='tstudent02db')
+        host=st.secrets["DB"]["HOST"], port=3306, user=st.secrets["DB"]["USER"], password=st.secrets["DB"]["PASSWORD"], database=st.secrets["DB"]["DBNAME"])
 if "ret" not in st.session_state:  # 搜尋結果
     st.session_state["ret"] = None
 if "analyzedData" not in st.session_state:  # 分析結果
