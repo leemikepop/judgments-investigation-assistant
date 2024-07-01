@@ -61,7 +61,7 @@ def rename_keys(dictionary, key_mapping):
 
 
 @st.cache_data
-def get_abstract_from_bedrock(sample, investigation_subject):
+def get_abstract_from_bedrock(jid, investigation_subject): #for catch
     # 若全文長度大於10000，則取主文+綜上取代JFULL並取前10000字
     # if len(sample['JFULL']) > 10000:
     #     # 將摘要黏到 JFULL 前面並取前10000字
@@ -69,8 +69,10 @@ def get_abstract_from_bedrock(sample, investigation_subject):
     #     jud_content = jud_content[:10000]
     # else:
     #     jud_content = sample['JFULL']
-    jud_content = sample[:10000]
+    jud_content = st.session_state['content'][:10000] if st.session_state['content'] is not None else ""
+    jud_history = st.session_state['history'][:10000] if st.session_state['history'] is not None else ""
     content = f"""<content>{jud_content}</content>"""
+    history = f"""<history>{jud_history}</history>"""
     rule = f"""
     <rule>
     1.原告(plaintiff)：說明在此案中被告為哪些公司或哪些人。
@@ -96,11 +98,11 @@ def get_abstract_from_bedrock(sample, investigation_subject):
             "properties": {
                 "plaintiff": {
                     "type": "string",
-                    "description": "Identifies the plaintiff(原告) in the judgment document."
+                    "description": "Identifies the plaintiff (原告) in the judgment document (in <content>). If there are any previous judgments (in <history>), search within them."
                 },
                 "defendant": {
                     "type": "string",
-                    "description": "Identifies the defendant(被告) in the judgment document."
+                    "description": "Identifies the defendant (被告) in the judgment document (in <content>). If there are any previous judgments (in <history>), search within them."
                 },
                 "subject": {
                     "type": "string",
@@ -182,6 +184,7 @@ def get_abstract_from_bedrock(sample, investigation_subject):
                 "role": "user",
                 "content": [
                     {"type": "text", "text": content},
+                    {"type": "text", "text": history},
                     {"type": "text", "text": subject},
                     {"type": "text", "text": prompt},
                 ]

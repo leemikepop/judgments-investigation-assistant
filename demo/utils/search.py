@@ -271,6 +271,7 @@ def parsePage(url):
                     'JTYPE': char,
                     'JDATE': date,                        
                     'JURL': link,
+                    'JHISURL': None,
                     'JPLAINTIFF': None,
                     'JDEFENDANT': None,
                     'JDESP':dscp,
@@ -298,12 +299,12 @@ def doLocalSearch():
         except Exception as e:
             st.warning(e)
             return
-    results = st.session_state['db'].execute_query(f"""SELECT Judgments.JID, Judgments.JTITLE, Judgments.JCHAR, Judgments.JTYPE, Judgments.JDATE, Judgments.JURL, Judgments.JPLAINTIFF, Judgments.JDEFENDANT, Judgments.JDESP, Judgments.JFULL, Searchable.ID, Searchable.JSUBJECT, Searchable.JSUBJECTROLE, Searchable.JSCORE, Searchable.JCASESUMMARY
+    results = st.session_state['db'].execute_query(f"""SELECT Judgments.JID, Judgments.JTITLE, Judgments.JCHAR, Judgments.JTYPE, Judgments.JDATE, Judgments.JURL, Judgments.JHISURL, Judgments.JPLAINTIFF, Judgments.JDEFENDANT, Judgments.JDESP, Judgments.JFULL, Searchable.ID, Searchable.JSUBJECT, Searchable.JSUBJECTROLE, Searchable.JSCORE, Searchable.JCASESUMMARY
 FROM Judgments
 JOIN Searchable ON Judgments.JID = Searchable.JID
 WHERE Searchable.JSUBJECT LIKE '%{st.session_state["searchInputText"].strip()}%'
 ORDER BY CASE WHEN Searchable.JSCORE IS NULL THEN 1 ELSE 0 END, Searchable.JSCORE DESC;""")
-    keys = ['id', 'JID', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JURL', 'JPLAINTIFF', 'JDEFENDANT', 'JDESP', 'JFULL', 'ID', 'JSUBJECT', 'JSUBJECTROLE', 'JSCORE', 'JCASESUMMARY']
+    keys = ['id', 'JID', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JURL', 'JHISURL', 'JPLAINTIFF', 'JDEFENDANT', 'JDESP', 'JFULL', 'ID', 'JSUBJECT', 'JSUBJECTROLE', 'JSCORE', 'JCASESUMMARY']
     st.session_state.ret = [dict(zip(keys, (idx + 1,) + values)) for idx,values in enumerate(results)]
     if len(st.session_state.ret) > 0:
         st.session_state.curr_page = 1

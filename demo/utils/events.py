@@ -41,7 +41,7 @@ def clkSearchButton():
 
 
 def showResults2(ret):
-    # ['id', 'JID', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JURL', 'JPLAINTIFF', 'JDEFENDANT', 'JDESP', 'JFULL', 'ID', 'JSUBJECT', 'JSUBJECTROLE', 'JSCORE', 'JCASESUMMARY']
+    # ['id', 'JID', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JURL', 'JHISURL', 'JPLAINTIFF', 'JDEFENDANT', 'JDESP', 'JFULL', 'ID', 'JSUBJECT', 'JSUBJECTROLE', 'JSCORE', 'JCASESUMMARY']
     columns = [
         {"field": 'id', "headerName": 'No.', "minWidth": 45, "headerAlign":'center', "align": 'center'},
         {"field": 'JSCORE', "headerName": '信貸分數(負面)', "type": 'number', "minWidth": 130, "headerAlign":'center', "align": 'center'},
@@ -200,6 +200,45 @@ def clkAnalyze():
             item['data'] = updated_data
         st.session_state["analyzedData"]["lineChartDataJTITLE"] = lineCharData
         # print(st.session_state["analyzedData"])
+
+        ## 準備JSUBJECTROLE圓餅圖資料 ##
+        vCountsJSUBJECTROLE = df["JSUBJECTROLE"].value_counts()
+        print(vCountsJSUBJECTROLE)
+        pieData = []
+        fill = []
+        fill_id = ["dots", "lines"]
+        JTITLEList = []
+        for i, (item, count) in enumerate(vCountsJSUBJECTROLE.items()):
+            print(i, item, count)
+            if i > 4:
+                break
+            JTITLEList.append(item)
+            pieData.append({
+                "id": item,
+                "label": item,
+                "value": count,
+                "color": st.session_state["colors"][count % 5]
+            })
+            fill.append({
+                "match": {"id": item},
+                "id": fill_id[count % 2]
+            })
+        others_data = list(vCountsJSUBJECTROLE.items())[5:]  # 後面大於4的元素
+        if len(others_data) > 0:
+            others_item, others_count = zip(*others_data)  # 拆分成兩個列表
+            count = sum(others_count)
+            pieData.append({
+                "id": "其他",
+                "label": f"{', '.join(others_item[:3])}, ...",
+                "value": count,
+                "color": st.session_state["colors"][count % 5]
+            })
+            fill.append({
+                "match": {"id": "其他"},
+                "id": fill_id[count % 2]
+            })
+        if len(pieData) > 0:
+            st.session_state["analyzedData"]["pieDataJSUBJECTROLE"] = [pieData, fill]
         sync()
     else:
         st.session_state["analyzedData"] = None

@@ -71,6 +71,10 @@ if "session" not in st.session_state:
 if "bedrock_client" not in st.session_state:
     st.session_state["bedrock_client"] = st.session_state["session"].client(
         'bedrock-runtime', region_name='us-east-1')
+if 'content' not in st.session_state:
+    st.session_state['content'] = None
+if 'history' not in st.session_state:
+    st.session_state['history'] = None
 # 狀態
 if "searchMode" not in st.session_state:
     st.session_state["searchMode"] = False
@@ -90,17 +94,19 @@ if "searchHistories" not in st.session_state:
 
 @st.cache_data
 def requestJudgs(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    div_element = soup.find('div', {'id': 'jud'})
-    if div_element:
-        td_element = div_element.find(
-            'td', {'class': 'tab_linenu'})  # 找到目標td元素
-        if td_element:
-            td_element.extract()  # 刪除該td元素
-        return div_element.text
-    else:
-        return None
+    response = requests.get(url) if url is not None else None
+    if response is not None:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        div_element = soup.find('div', {'id': 'jud'})
+        if div_element:
+            td_element = div_element.find(
+                'td', {'class': 'tab_linenu'})  # 找到目標td元素
+            if td_element:
+                td_element.extract()  # 刪除該td元素
+            return div_element.text
+        else:
+            return None
+    return None
 
 
 # 刷新頁面時要檢查的狀態
@@ -110,13 +116,14 @@ if st.session_state["modal"].is_open():
         with elements("modal"):
             if not st.session_state["modal_data"]["JSCORE"]:
                 url = st.session_state["modal_data"]["JURL"]
+                pre_url = st.session_state["modal_data"]["JHISURL"]
                 start_time = timeit.default_timer()
-                content = requestJudgs(url)
+                st.session_state['content'] = requestJudgs(url)
+                st.session_state['history'] = requestJudgs(pre_url)
                 end_time = timeit.default_timer()
                 print("parse JFULL time:", end_time - start_time)
                 start_time = timeit.default_timer()
-                result = get_abstract_from_bedrock(
-                    content, st.session_state["searchInputText"]) if content is not None else None
+                result = get_abstract_from_bedrock(st.session_state["modal_data"]["JID"], st.session_state["searchInputText"]) if st.session_state['content'] is not None else None
                 end_time = timeit.default_timer()
                 print("inference time:", end_time - start_time)
                 result["JID"] = st.session_state['modal_data']["JID"]
@@ -131,7 +138,7 @@ if st.session_state["modal"].is_open():
                 st.session_state['updateDatas'] = result
             else:
                 result = st.session_state['modal_data']
-            if result is not None:
+            if "JSCORE" in result:
                 with mui.Typography(sx={"overflow": "auto"}):
                     st.markdown(f"""<b>調查對象：</b>{result["JSUBJECT"]} ({result["JSUBJECTROLE"]})<br/><br/>"""
                                 f"""<b>原告：</b>{result["JPLAINTIFF"]}<br/><br/>"""
@@ -278,6 +285,14 @@ with elements("demo"):
                                                    "marginRight": 5})
                                 with mui.Grid(item=True, sx={"width": "100%", "height": 280}):
                                     drawPieChart("pieDataJTYPE")
+
+                        if "pieDataJSUBJECTROLE" in st.session_state["analyzedData"]:
+                            with mui.Grid(direction="column", sx={"width": "100%", "height": 300}):
+                                with mui.Grid(item=True, sx={"width": "100%", "height": 20}):
+                                    mui.Typography("調查對象關係", align="center", sx={
+                                                   "marginRight": 5})
+                                with mui.Grid(item=True, sx={"width": "100%", "height": 280}):
+                                    drawPieChart("pieDataJSUBJECTROLE")
 
                     if "lineChartDataJTITLE" in st.session_state["analyzedData"]:
                         with mui.Grid(direction="column", sx={"padding": 2, "minWidth": 800, "width": "100%", "height": 540}):
