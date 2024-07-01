@@ -1,0 +1,34 @@
+-- CREATE USER 'developer'@'%' IDENTIFIED BY 'password';
+-- GRANT ALL PRIVILEGES ON *.* TO 'developer'@'%';
+
+-- SET NAMES utf8mb4;
+
+-- CREATE DATABASE JudgmentsDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- USE JudgmentsDB;
+
+-- CREATE TABLE Judgments (
+--     JID VARCHAR(127) PRIMARY KEY,
+--     JTITLE VARCHAR(127),
+--     JCHAR VARCHAR(127),
+--     JTYPE VARCHAR(7),
+--     JDATE VARCHAR(15),
+--     JURL VARCHAR(511),
+--     JHISURL VARCHAR(511),
+--     JPLAINTIFF VARCHAR(511),
+--     JDEFENDANT VARCHAR(511),
+--     JDESP TEXT,
+--     JFULL MEDIUMTEXT
+-- );
+
+-- CREATE TABLE Searchable (
+--     ID INT AUTO_INCREMENT PRIMARY KEY,
+--     JID VARCHAR(127) NOT NULL,
+--     JSUBJECT VARCHAR(127) NOT NULL,
+--     JSUBJECTROLE VARCHAR(7),
+--     JSCORE INT,
+--     JCASESUMMARY TEXT,
+--     FOREIGN KEY (JID) REFERENCES Judgments(JID)
+-- );
+
+-- COMMIT;

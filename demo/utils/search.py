@@ -11,6 +11,9 @@ import urllib.parse
 import random
 import pandas as pd
 import warnings
+
+from .models import MariaDBURID
+
 warnings.filterwarnings("ignore")
 # from .scores import scoreInference
 
@@ -20,7 +23,7 @@ def doSearch():
         print(st.session_state["searchInputText"])
         st.session_state["searchInputText"] = st.session_state["searchInputText"].target.value
 
-    if st.session_state["searchInputText"]:
+    if st.session_state["searchInputText"].strip():
         st.session_state["searchHistories"].add(st.session_state["searchInputText"])
         if st.session_state["searchMode"]:
             print("doOnlineSearch()")
@@ -28,6 +31,7 @@ def doSearch():
         else:
             print("doLocalSearch()")
             doLocalSearch()
+            
 
 def doOnlineSearch():
     search_attrs = {
@@ -46,22 +50,15 @@ def doOnlineSearch():
         "judgementMain" : None,
         "judgementKeyword" : st.session_state["searchInputText"]
     }
-    cnt = 0
-    for _,attr in search_attrs.items():
-        if attr is None or not attr:
-            cnt += 1
-    if cnt == 14:
-        st.warning("搜尋條件不可為空")
-        return
-    df = concurrentParse(search_attrs)
-    df.loc[:,"JDATE"] = pd.to_datetime(df.loc[:,"JDATE"], yearfirst=True, format='%Y-%m-%d').apply(lambda x: x.date())
-    # start_time = timeit.default_timer()
-    # df["JSCORE"] = scoreInference(df.iloc[:]["JSUMMARY"].to_list())
-    # end_time = timeit.default_timer()
-    # print("scoreInference time:", end_time - start_time)
-    df = df.sort_values(by='JSCORE', ascending=False)
-    st.session_state.ret = df
-    if st.session_state.ret.shape[0] > 0:
+    # cnt = 0
+    # for _,attr in search_attrs.items():
+    #     if attr is None or not attr:
+    #         cnt += 1
+    # if cnt == 14:
+    #     st.warning("搜尋條件不可為空")
+    #     return
+    st.session_state.ret = concurrentParse(search_attrs)
+    if len(st.session_state.ret) > 0:
         st.session_state.curr_page = 1
     else:
         st.session_state.curr_page = None
@@ -91,7 +88,7 @@ async def getiFramesUrls(search_attrs):
                             args=['--disable-infobars'])
     page = await browser.newPage()
     # await page.setViewport({'width': 1700, 'height': 1280})
-    await page.goto(URL)
+    await page.goto(URL, {'timeout': 60000})
 
     if search_attrs["case0"]:
         await page.waitForSelector("#vtype_C")
@@ -217,9 +214,10 @@ def concurrentParse(search_attrs):
             results.extend(future.result())
     end_time = timeit.default_timer()
     print("search time:", end_time - start_time)
-
-    df = pd.DataFrame(data=results, columns=['JID', 'JSCORE', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JOBJECT', 'JURL', 'JSUMMARY', 'JFULL'])
-    return df
+    for idx, row in enumerate(results):
+        row['id'] = idx + 1
+    # df = pd.DataFrame(data=results, columns=['JID', 'JSCORE', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JOBJECT', 'JURL', 'JSUMMARY', 'JFULL'])
+    return results
 
 def parsePage(url):
     session = requests.Session()
@@ -264,47 +262,54 @@ def parsePage(url):
                 if key in title:
                     char = value
                     break
-            # ret.append(Node(title, date, reason, link, dscp, char))
-            ret.append({'JID': JID,
-                        'JSCORE': random.uniform(0, 1),
-                        'JTITLE': reason,
-                        'JCHAR': title,
-                        'JTYPE': char,
-                        'JDATE': date,
-                        'JOBJECT': None,
-                        'JURL': link,
-                        'JSUMMARY':dscp,
-                        'JFULL': ""
-            })
+            ret.append(
+                {
+                    'id': None,
+                    'JID': JID,                        
+                    'JTITLE': reason,
+                    'JCHAR': title,
+                    'JTYPE': char,
+                    'JDATE': date,                        
+                    'JURL': link,
+                    'JHISURL': None,
+                    'JPLAINTIFF': None,
+                    'JDEFENDANT': None,
+                    'JDESP':dscp,
+                    'JFULL': None,
+                    'ID': None,
+                    'JSUBJECT': None,
+                    'JSUBJECTROLE': None,
+                    'JSCORE': None,
+                    'JCASESUMMARY': None,
+                }
+            )
     return ret
 
-from fuzzywuzzy import fuzz
+# from fuzzywuzzy import fuzz
 
-def search_company(df, keyword, threshold):
-    similarity_scores = df['JOBJECT'].apply(lambda x: fuzz.ratio(keyword, x))
-    filtered_df = df[similarity_scores >= threshold]
-    return filtered_df
+# def search_company(df, keyword, threshold):
+#     similarity_scores = df['JOBJECT'].apply(lambda x: fuzz.ratio(keyword, x))
+#     filtered_df = df[similarity_scores >= threshold]
+#     return filtered_df
 
 def doLocalSearch():
-    def modify_scores(x):
-        if x == 1:
-            return x - random.uniform(0.02, 0.25)
-        elif x == 0:
-            return x + random.uniform(0.02, 0.25)
-        return x
-    if st.session_state["dataset"] is not None:
-        df = search_company(st.session_state["dataset"], st.session_state["searchInputText"], 45)
-        df.loc[:, "JSCORE"] = df.loc[:, "JSCORE"].apply(modify_scores)
-        df.loc[:,"JDATE"] = pd.to_datetime(df.loc[:,"JDATE"], yearfirst=True).apply(lambda x: x.date())
-        df = df.sort_values(by='JSCORE', ascending=False)
-        # st.write(df.shape)
-        # st.dataframe(df[['JID', 'labels', 'JTITLE', 'Judgment_Number', 'Case_Type',
-        #     'Judgment_Date', 'Investigated_Object', 'Judgment_URL']])
-        st.session_state.ret = df
-        if st.session_state.ret.shape[0] > 0:
-            st.session_state.curr_page = 1
-        else:
-            st.session_state.curr_page = None
-            st.session_state["total_page"] = None
-            st.session_state.ret = None
+    if not st.session_state['db'].connection.is_connected():
+        try:
+            st.session_state['db'] = MariaDBURID(host='3.115.42.166', port=3306, user='tstudent02', password='Scsb@2024', database='tstudent02db')
+        except Exception as e:
+            st.warning(e)
+            return
+    results = st.session_state['db'].execute_query(f"""SELECT Judgments.JID, Judgments.JTITLE, Judgments.JCHAR, Judgments.JTYPE, Judgments.JDATE, Judgments.JURL, Judgments.JHISURL, Judgments.JPLAINTIFF, Judgments.JDEFENDANT, Judgments.JDESP, Judgments.JFULL, Searchable.ID, Searchable.JSUBJECT, Searchable.JSUBJECTROLE, Searchable.JSCORE, Searchable.JCASESUMMARY
+FROM Judgments
+JOIN Searchable ON Judgments.JID = Searchable.JID
+WHERE Searchable.JSUBJECT LIKE '%{st.session_state["searchInputText"].strip()}%'
+ORDER BY CASE WHEN Searchable.JSCORE IS NULL THEN 1 ELSE 0 END, Searchable.JSCORE DESC;""")
+    keys = ['id', 'JID', 'JTITLE', 'JCHAR', 'JTYPE', 'JDATE', 'JURL', 'JHISURL', 'JPLAINTIFF', 'JDEFENDANT', 'JDESP', 'JFULL', 'ID', 'JSUBJECT', 'JSUBJECTROLE', 'JSCORE', 'JCASESUMMARY']
+    st.session_state.ret = [dict(zip(keys, (idx + 1,) + values)) for idx,values in enumerate(results)]
+    if len(st.session_state.ret) > 0:
+        st.session_state.curr_page = 1
+    else:
+        st.session_state.curr_page = None
+        st.session_state["total_page"] = None
+        st.session_state.ret = None
     

@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 # from transformers import AutoTokenizer, AutoModelForSequenceClassification
 # from transformers import DataCollatorWithPadding
@@ -45,12 +46,22 @@ import streamlit as st
 #     print(scores)
 #     return scores
 
+def rename_keys(dictionary, key_mapping):
+    new_dict = {}
+    for key, value in dictionary.items():
+        if key in key_mapping:
+            new_key = key_mapping[key]
+        else:
+            new_key = key
+        new_dict[new_key] = value
+    return new_dict
 
 
-import json
 # authentication
+
+
 @st.cache_data
-def get_abstract_from_bedrock(sample, investigation_subject):
+def get_abstract_from_bedrock(jid, investigation_subject): #for catch
     # 若全文長度大於10000，則取主文+綜上取代JFULL並取前10000字
     # if len(sample['JFULL']) > 10000:
     #     # 將摘要黏到 JFULL 前面並取前10000字
@@ -58,8 +69,10 @@ def get_abstract_from_bedrock(sample, investigation_subject):
     #     jud_content = jud_content[:10000]
     # else:
     #     jud_content = sample['JFULL']
-    jud_content = sample[:10000]
+    jud_content = st.session_state['content'][:10000] if st.session_state['content'] is not None else ""
+    jud_history = st.session_state['history'][:10000] if st.session_state['history'] is not None else ""
     content = f"""<content>{jud_content}</content>"""
+    history = f"""<history>{jud_history}</history>"""
     rule = f"""
     <rule>
     1.原告(plaintiff)：說明在此案中被告為哪些公司或哪些人。
@@ -83,64 +96,64 @@ def get_abstract_from_bedrock(sample, investigation_subject):
         "input_schema": {
             "type": "object",
             "properties": {
-            "plaintiff": {
-                "type": "string",
-                "description": "Identifies the plaintiff(原告) in the judgment document."
-            },
-            "defendant": {
-                "type": "string",
-                "description": "Identifies the defendant(被告) in the judgment document."
-            },
-            "subject": {
-                "type": "string",
-                "description": "The subject of investigation in this judgment document.",
-            },
-            "subject_role": {
-                "type": "string",
-                "description": "The role of the subject of investigation in this judgment document.",
-                "enum": ["原告", "被告", "關係人", "無關", "不知道"]
-            },
-            "chinese_summary": {
-                "type": "string",
-                "description": "Provides a summary of this judgment document."
-            },
-            "case_description": {
-                "type": "string",
-                "description": "Briefly describes the involvement of the subject of investigation in this judgment document."
-            },
-            "risk_score": {
-                "type": "integer",
-                "description": "Determines the risk of financial lending by the bank to the subject of investigation, ranging from 1 to 100.",
-                "minimum": 1,
-                "maximum": 100
-            },          
-            # "supporting_business_unit": {
-            #     "type": "string",
-            #     "description": "The internal business unit that this email should be routed to.",
-            #     "enum": ["Sales", "Operations", "Customer Service", "Fund Management"]
-            # },
-            # "customer_names": {
-            #     "type": "array",
-            #     "description": "An array of customer names mentioned in the email.",
-            #     "items": { "type": "string" }
-            # },
-            # "sentiment_towards_employees": {
-            #     "type": "array",
-            #     "items": {
-            #         "type": "object",
-            #         "properties": {
-            #             "employee_name": {
-            #                 "type": "string",
-            #                 "description": "The employee's name."
-            #             },
-            #             "sentiment": {
-            #                 "type": "string",
-            #                 "description": "The sender's sentiment towards the employee.",
-            #                 "enum": ["Positive", "Neutral", "Negative"]
-            #             }
-            #         }
-            #     }
-            # }
+                "plaintiff": {
+                    "type": "string",
+                    "description": "Identifies the plaintiff (原告) in the judgment document (in <content>). If there are any previous judgments (in <history>), search within them."
+                },
+                "defendant": {
+                    "type": "string",
+                    "description": "Identifies the defendant (被告) in the judgment document (in <content>). If there are any previous judgments (in <history>), search within them."
+                },
+                "subject": {
+                    "type": "string",
+                    "description": "The subject of investigation in this judgment document.",
+                },
+                "subject_role": {
+                    "type": "string",
+                    "description": "The role of the subject of investigation in this judgment document.",
+                    "enum": ["原告", "被告", "關係人", "無關", "不知道"]
+                },
+                "chinese_summary": {
+                    "type": "string",
+                    "description": "Provides a summary of this judgment document."
+                },
+                "case_description": {
+                    "type": "string",
+                    "description": "Briefly describes the involvement of the subject of investigation in this judgment document."
+                },
+                "risk_score": {
+                    "type": "integer",
+                    "description": "Determines the risk of financial lending by the bank to the subject of investigation, ranging from 1 to 100.",
+                    "minimum": 1,
+                    "maximum": 100
+                },
+                # "supporting_business_unit": {
+                #     "type": "string",
+                #     "description": "The internal business unit that this email should be routed to.",
+                #     "enum": ["Sales", "Operations", "Customer Service", "Fund Management"]
+                # },
+                # "customer_names": {
+                #     "type": "array",
+                #     "description": "An array of customer names mentioned in the email.",
+                #     "items": { "type": "string" }
+                # },
+                # "sentiment_towards_employees": {
+                #     "type": "array",
+                #     "items": {
+                #         "type": "object",
+                #         "properties": {
+                #             "employee_name": {
+                #                 "type": "string",
+                #                 "description": "The employee's name."
+                #             },
+                #             "sentiment": {
+                #                 "type": "string",
+                #                 "description": "The sender's sentiment towards the employee.",
+                #                 "enum": ["Positive", "Neutral", "Negative"]
+                #             }
+                #         }
+                #     }
+                # }
             },
             "required": [
                 "plaintiff",
@@ -171,8 +184,9 @@ def get_abstract_from_bedrock(sample, investigation_subject):
                 "role": "user",
                 "content": [
                     {"type": "text", "text": content},
+                    {"type": "text", "text": history},
                     {"type": "text", "text": subject},
-                    {"type": "text", "text": prompt},                
+                    {"type": "text", "text": prompt},
                 ]
             }
         ],
@@ -189,11 +203,18 @@ def get_abstract_from_bedrock(sample, investigation_subject):
         "body": json.dumps(body),
         "contentType": "application/json",
         "accept": "application/json",
-        "modelId": 'anthropic.claude-3-sonnet-20240229-v1:0',#"anthropic.claude-3-haiku-20240307-v1:0", #'anthropic.claude-3-5-sonnet-20240620-v1:0'
+        #'anthropic.claude-3-sonnet-20240229-v1:0', # "anthropic.claude-3-haiku-20240307-v1:0", #'anthropic.claude-3-5-sonnet-20240620-v1:0'
+        "modelId": 'anthropic.claude-3-5-sonnet-20240620-v1:0', 
         # "trace": 'DISABLED', #'ENABLED'|'DISABLED',
         # "guardrailIdentifier":None, #'string',
         # "guardrailVersion":None, #'string'
     }
-    response = st.session_state["bedrock_client"].invoke_model(**kwargs) # dict_keys(['ResponseMetadata', 'contentType', 'body'])
-    response_body = json.loads(response.get('body').read()) # dict_keys(['id', 'type', 'role', 'model', 'content', 'stop_reason', 'stop_sequence', 'usage'])
-    return response_body["content"][0]["input"]  # dict_keys(['plaintiff', 'defendant', 'subject', 'subject_role', 'chinese_summary', 'case_description', 'risk_score'])
+    # dict_keys(['ResponseMetadata', 'contentType', 'body'])
+    response = st.session_state["bedrock_client"].invoke_model(**kwargs)
+    # dict_keys(['id', 'type', 'role', 'model', 'content', 'stop_reason', 'stop_sequence', 'usage'])
+    response_body = json.loads(response.get('body').read())
+
+    key_mapping = {'plaintiff': 'JPLAINTIFF', 'defendant': 'JDEFENDANT', 'subject': 'JSUBJECT',
+                   'subject_role': 'JSUBJECTROLE', 'chinese_summary': 'JDESP', 'case_description': 'JCASESUMMARY', 'risk_score': 'JSCORE'}
+    # dict_keys(['plaintiff', 'defendant', 'subject', 'subject_role', 'chinese_summary', 'case_description', 'risk_score'])
+    return rename_keys(response_body["content"][0]["input"], key_mapping)

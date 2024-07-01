@@ -4,6 +4,5 @@ streamlit_elements
 streamlit_modal
 beautifulsoup4
 requests
-python-Levenshtein
-fuzzywuzzy
 boto3
+mysql-connector-python
