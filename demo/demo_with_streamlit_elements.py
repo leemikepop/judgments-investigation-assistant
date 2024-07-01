@@ -192,7 +192,12 @@ with st.sidebar:
 
 # 主體
 with elements("demo"):
-
+    with mui.Grid(container=True, direction="row", justifyContent="flex-start", alignItems="center", sx={"padding":3}):
+        with mui.Grid(item=True, sx={"width":50}):
+            mui.Avatar(src="https://is1-ssl.mzstatic.com/image/thumb/Purple122/v4/6a/29/84/6a298483-8e5d-e8f2-9f58-6397b7d2deca/AppIcon-0-0-1x_U007emarketing-0-0-0-10-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/246x0w.webp")
+        with mui.Grid(item=True, xs=11):
+            mui.Typography("司法判決書小幫手", variant="h4")
+        
     with dashboard.Grid(st.session_state.layout, draggableHandle=".draggable"):
 
         ## 搜尋 ##
