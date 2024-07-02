@@ -203,7 +203,7 @@ def clkAnalyze():
 
         ## 準備JSUBJECTROLE圓餅圖資料 ##
         vCountsJSUBJECTROLE = df["JSUBJECTROLE"].value_counts()
-        print(vCountsJSUBJECTROLE)
+        # print(vCountsJSUBJECTROLE)
         pieData = []
         fill = []
         fill_id = ["dots", "lines"]

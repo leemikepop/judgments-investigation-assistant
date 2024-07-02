@@ -263,12 +263,12 @@ with elements("demo"):
         with mui.Card(key="abstractArea", sx={"display": "flex", "flexDirection": "column"}):
             # 分析搜尋結果按鈕 #
             with mui.CardActions():  # sx={"justifyContent": "flex-end"}
-                mui.Button("開始分析", onClick=clkAnalyze, sx={
+                mui.Button("產生圖表", onClick=clkAnalyze, sx={
                            "fontWeight": 'bold', "fontSize": '1.1em'})
             # 如果有分析結果則展示 #
             if st.session_state["analyzedData"] is not None and 'keyword' in st.session_state["analyzedData"]:
                 mui.CardHeader(
-                    title=f"⚛️🇦🇮分析報表 ({st.session_state['analyzedData']['keyword']})", className="draggable")
+                    title=f"⚛️分析圖表 ({st.session_state['analyzedData']['keyword']})", className="draggable")
                 # 卡片主體 #
                 with mui.CardContent(sx={"flex": 1, "minHeight": 0, "overflow": "auto"}):
 
@@ -307,4 +307,4 @@ with elements("demo"):
                             with mui.Grid(item=True, sx={"width": "95%", "height": 480}):
                                 drawLineChart("lineChartDataJTITLE")
             else:
-                mui.CardHeader(title="⚛️🇦🇮分析報表", className="draggable")
+                mui.CardHeader(title="⚛️分析圖表", className="draggable")
